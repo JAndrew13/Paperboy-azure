@@ -1,0 +1,28 @@
+
+<%- include("partials/header"); -%>
+
+<%- include("partials/chart")-%>
+
+<h1>Status Report</h1>
+<div>
+    <h2>Current Connection: <%= chart.ticker %></h2>
+    <p>Current Price: <%= chart.currPrice %></p>
+    <p>Time Frame: <%= chart.timeFrame %></p>
+    <p>P/L: <%= algo.profitLoss %></p>
+    <p>Total Gains/Losses: <%= algo.gainLoss %></p>
+    <p>Duration: <%= algo.duration %></p>
+    <p>Next Move: <%= algo.nextMove %></p>
+
+</div>
+
+<div>
+    <h2>Wallet Details</h2>
+    <p>Cash Holdings: <%= wallet.cash %>
+    <p>Token Holdings: <%=(wallet.tokens).toFixed(6)%></p>
+    <p>est. value ~ <%= wallet.accountValue %></p>
+</div>
+
+
+
+
+<%- include("partials/footer"); -%>

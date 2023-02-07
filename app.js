@@ -16,13 +16,6 @@ const mongoAtlasKey = process.env.MONGO_ATLAS_KEY;
 //connect Mongoose
 mongoose.connect(mongoAtlasKey, {useNewUrlParser: true});
 
-
-
-
-
-// connect to database server
-mongoose.connect(mongoAtlasKey, {useNewUrlParser: true});
-
 // Post Schema
 const postSchema = {
   alertId: String, 
@@ -30,7 +23,6 @@ const postSchema = {
   alertPrice: String, 
   alertSignal: String,
   alertTime: { type: Date, default: Date.now },
-
 
 };
 // Pose Model
@@ -146,6 +138,22 @@ function updateReports(alert){
   chart.timeFrame = undefined;
   wallet.accountValue = "$" + (wallet.cash + (wallet.tokens * alert.price)).toFixed(2);
 };
+
+const newPost = new Post({
+  alertId: '', 
+  alertTicker: alert.ticker, 
+  alertPrice: alert.price, 
+  alertSignal: alert.action
+});
+
+newPost.save((err) => {
+  if (err) {
+    console.log(err);
+  } else {
+    console.log('Alert saved to database');
+  }
+});
+
 // ============================================ //
 // Server startup logs
 let port = process.env.PORT;

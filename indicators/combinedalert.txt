@@ -1,0 +1,53 @@
+//@version=5
+indicator("JB Trendlines With Breaks [LUX]", overlay=true)
+length = input.int(14)
+k      = input.float(1.,'Slope',minval=0,step=.1)
+method = input.string('Atr','Slope Calculation Method',
+  options=['Atr','Stdev','Linreg'])
+show   = input(false,'Show Only Confirmed Breakouts')
+//----
+upper = 0., lower = 0.
+slope_ph = 0., slope_pl = 0.
+src = close
+n = bar_index
+//----
+ph = ta.pivothigh(length, length)
+pl = ta.pivotlow(length, length)
+slope = switch method
+    'Atr'      => ta.atr(length)/length*k
+    'Stdev'    => ta.stdev(src,length)/length*k
+    'Linreg'   => math.abs(ta.sma(src*bar_index,length)-ta.sma(src,length)*ta.sma(bar_index,length))/ta.variance(n,length)/2*k
+
+slope_ph := ph ? slope : slope_ph[1]
+slope_pl := pl ? slope : slope_pl[1]
+
+upper := ph ? ph : upper[1] - slope_ph
+lower := pl ? pl : lower[1] + slope_pl
+//----
+single_upper = 0
+single_lower = 0
+single_upper := src[length] > upper ? 0 : ph ? 1 : single_upper[1]
+single_lower := src[length] < lower ? 0 : pl ? 1 : single_lower[1]
+upper_breakout = single_upper[1] and src[length] > upper and (show ? src > src[length] : 1)
+lower_breakout = single_lower[1] and src[length] < lower and (show ? src < src[length] : 1)
+
+// Combine the alerts into a single one
+combined_alert = upper_breakout or lower_breakout
+if combined_alert
+    // Compile the JSON data with the appropriate signal type
+    data = {
+        price: src[length],
+        ticker: symbol.name,
+        signal_type: upper_breakout ? "buy" : "sell"
+    }
+    
+    // Send the combined alert to your node server
+    // Replace this with the actual code to send the data
+    alert("Combined alert", "Combined alert fired", data=data)
+
+plotshape(upper_breakout ? low[length] : na, "Upper Break", shape.labelup, location.absolute, #26a69a, -length, text="B", textcolor=color.white, size=size.tiny)
+plotshape(lower_breakout ? high[length] : na, "Lower Break", shape.labeldown, location.absolute, #ef5350, -length, text="S", textcolor=color.white, size=size.tiny)
+//----
+var line up_l = na
+var line dn_l = na
+var label recent_up_break = na

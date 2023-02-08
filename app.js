@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 
-
 const app = express();
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
@@ -12,9 +11,13 @@ app.use(express.static("public"));
 
 // =========== Database Configuration ============ //
 
+// Connect App to LOCAL Database
+// mongoose.connect("mongodb://localhost:27017/posts", {useNewUrlParser: true});
+
+// Connect App to MONGO ATLAS Database
 const mongoAtlasKey = process.env.MONGO_ATLAS_KEY;
-//connect Mongoose
 mongoose.connect(mongoAtlasKey, {useNewUrlParser: true});
+
 
 // Post Schema
 const postSchema = {
@@ -22,15 +25,14 @@ const postSchema = {
   alertTicker: String, 
   alertPrice: String, 
   alertSignal: String,
-  alertTime: { type: Date, default: Date.now },
-
+  alertDate: String,
+  walletData: String
 };
-// Pose Model
+
+// Post Model
 const Post = mongoose.model("Post", postSchema);
 
-// =========== Paperboy Configuration ============ //
-
-
+// =========== Paperboy Data Configuration ============ //
 let algo = {
   algoName: "Paperboy Algo 1",
   buyRate: 1,
@@ -56,7 +58,30 @@ let wallet = {
   cash: 1000,
   tokens: 0,
 }
+ 
 
+// ============== Configure Datetime =============== //
+const date = new Date();
+
+function getDate(){
+
+    // Get date
+    let month = date.getMonth();
+    let day = date.getDate();
+    let year = date.getFullYear();
+
+    let dateString = (month + "-" + day + "-" + year);
+
+    // Get time
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    let seconds = date.getSeconds();
+
+    let timeString = (hours + ":" + minutes + ":" + seconds);
+
+    console.log(dateString + " " + timeString);
+    return (dateString + " " + timeString)
+};
 
 // ============== Server Functions =============== //
 
@@ -80,34 +105,51 @@ app.post('/alert', (req, res) => {
   console.log("");
   console.log("Recived new" + req.body.action + "alert from Trading View!");
   console.log(req.body);  // log Raw alert
-  // { ticker: 'MATICUSDT', action: 'Sell', price: '0.9634' }
+  // example format -> { ticker: 'MATICUSDT', action: 'Sell', price: '0.9634' }
 
   let alert = { // Compile Alert Object
     ticker: req.body.ticker, // 'MATICUSDT'
     action: req.body.action, // 'Sell' or 'Buy'
     price: req.body.price    // '0.9235'
   }
-
-  
   paperBoy(alert); // Alert PaperBoy
 
-  return res.status(200).json({ ok: true });   // Return OK to server
+  const newPost = new Post({ // Save Alert to Database
+    alertId: '', 
+    alertTicker: alert.ticker, 
+    alertPrice: alert.price, 
+    alertSignal: alert.action,
+    alertDate: getDate(),
+    walletData: wallet.accountValue.toString()
+  });
+  
+  newPost.save((err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log('Alert saved to database');
+    }
+  })
+
+  return res.status(200).json({ ok: true }) ;  // Return OK to server
+
 });
 
 // ============= Buy / Sell Actions ============== //
 
 function paperBoy(alert){
 
-  if (alert.action === "Buy"){
-    //create new BUY order
+  if (alert.action === "Buy"){ //create new BUY order
+
       // determine amount to buy & prepare order
       const orderAmount = (wallet.cash * algo.buyRate);
       const tokenAmount = (orderAmount / alert.price);
       // place order
       buy(orderAmount, tokenAmount);
 
-  } else if (alert.action === "Sell"){
-    //create new SELL order
+
+  } else if (alert.action === "Sell"){ //create new SELL order
+
       // determine amount to buy & prepare order
       let orderAmount = (wallet.tokens * algo.sellRate);
       let cashAmount = (orderAmount * alert.price);
@@ -115,8 +157,7 @@ function paperBoy(alert){
       sell(orderAmount, cashAmount)
   }
 
-  updateReports(alert);
-
+  updateReports(alert); // update reports
 };
 
 function buy(orderAmount, tokenAmount){
@@ -138,21 +179,6 @@ function updateReports(alert){
   chart.timeFrame = undefined;
   wallet.accountValue = "$" + (wallet.cash + (wallet.tokens * alert.price)).toFixed(2);
 };
-
-const newPost = new Post({
-  alertId: '', 
-  alertTicker: alert.ticker, 
-  alertPrice: alert.price, 
-  alertSignal: alert.action
-});
-
-newPost.save((err) => {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log('Alert saved to database');
-  }
-});
 
 // ============================================ //
 // Server startup logs

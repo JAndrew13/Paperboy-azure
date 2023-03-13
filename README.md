@@ -1,5 +1,7 @@
 
-# Paperboy Trade Algo ![unstable]
+# Paperboy Trade Algo 
+
+Project is online [here](https://paperboy.jakebrunner.com/)
 
 <!-- TODO -->
 * live update /views/home.ejs file with new data upon change
